@@ -177,7 +177,7 @@ const App: React.FC = () => {
       
       setProcessStage('completed');
 
-    } catch (err) {
+    } catch (err)      {
       setError(err instanceof Error ? err.message : 'Ocorreu um erro desconhecido.');
       setProcessStage('idle');
     }
@@ -186,9 +186,9 @@ const App: React.FC = () => {
   const isProcessing = processStage === 'transcribing' || processStage === 'cleaning';
 
   return (
-    <div className={`min-h-screen transition-opacity duration-500 ease-in-out ${isAppVisible ? 'opacity-100' : 'opacity-0'}`}>
+    <div className={`min-h-screen flex flex-col transition-opacity duration-500 ease-in-out ${isAppVisible ? 'opacity-100' : 'opacity-0'}`}>
       <Header />
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-8 flex-grow">
         <h3 className="max-w-3xl mx-auto text-xl md:text-2xl font-light text-center text-gray-700 mb-8">
           Converta o seu áudio em texto transliterado, e transformado em documento com qualidade profissional.
         </h3>
@@ -312,7 +312,9 @@ const App: React.FC = () => {
         )}
       </main>
       <footer className="text-center py-6 text-gray-500 text-sm">
-        <p>© {new Date().getFullYear()} LONGANI.</p>
+        <p>
+          © {new Date().getFullYear()} LONGANI.
+        </p>
       </footer>
       {showFeedbackPopup && <FeedbackPopup onSubmit={handleFeedbackSubmit} onClose={handleFeedbackClose} />}
     </div>
