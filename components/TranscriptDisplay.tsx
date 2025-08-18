@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -33,12 +32,12 @@ export const TranscriptDisplay: React.FC<TranscriptDisplayProps> = ({ title, tex
 
   const renderContent = () => {
     if (!text && !isLoading) {
-        return <span className="text-gray-500">{placeholder || "O resultado aparecerá aqui."}</span>;
+        return <span className="text-gray-500 dark:text-gray-400">{placeholder || "O resultado aparecerá aqui."}</span>;
     }
     
     if (renderAsMarkdown) {
         return (
-            <div className="prose prose-p:text-gray-600 prose-headings:text-gray-800 prose-strong:text-gray-900 prose-ul:text-gray-600 prose-li:marker:text-[#24a9c5] prose-a:text-[#24a9c5] hover:prose-a:text-[#1e8a9f]">
+            <div className="prose prose-p:text-gray-600 prose-headings:text-gray-800 prose-strong:text-gray-900 prose-ul:text-gray-600 prose-li:marker:text-[#24a9c5] prose-a:text-[#24a9c5] hover:prose-a:text-[#1e8a9f] dark:prose-invert">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                     {text}
                 </ReactMarkdown>
@@ -47,20 +46,20 @@ export const TranscriptDisplay: React.FC<TranscriptDisplayProps> = ({ title, tex
     }
 
     return (
-        <div className="whitespace-pre-wrap font-mono text-sm leading-relaxed text-gray-700">
+        <div className="whitespace-pre-wrap font-mono text-sm leading-relaxed text-gray-700 dark:text-gray-300">
             {text}
         </div>
     );
   };
 
   return (
-    <div className={`bg-white/60 rounded-xl border border-gray-200 shadow-md transition-all duration-500 ${isComplete ? 'opacity-100' : 'opacity-80'}`}>
-      <div className="flex justify-between items-center p-4 border-b border-gray-200">
-        <h2 className="text-lg font-medium text-gray-700">{title}</h2>
+    <div className={`bg-white/60 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700 shadow-md transition-all duration-500 ${isComplete ? 'opacity-100' : 'opacity-80'}`}>
+      <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
+        <h2 className="text-lg font-medium text-gray-700 dark:text-gray-300">{title}</h2>
         {isComplete && (
           <button
             onClick={handleCopy}
-            className="p-2 rounded-md hover:bg-gray-200 transition-colors text-gray-500 hover:text-gray-800"
+            className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
             aria-label="Copiar para a área de transferência"
           >
             {copied ? <CheckIcon className="text-green-500" /> : <ClipboardIcon />}
@@ -69,7 +68,7 @@ export const TranscriptDisplay: React.FC<TranscriptDisplayProps> = ({ title, tex
       </div>
       <div className="p-6 min-h-[300px] relative">
         {isLoading ? (
-          <div className="absolute inset-0 flex items-center justify-center bg-white/30 rounded-b-xl">
+          <div className="absolute inset-0 flex items-center justify-center bg-white/30 dark:bg-gray-900/50 rounded-b-xl">
             <Loader className="h-8 w-8 text-[#24a9c5]" />
           </div>
         ) : (
