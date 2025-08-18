@@ -7,7 +7,6 @@ import { ProgressBar } from './components/ProgressBar';
 import { Loader } from './components/Loader';
 import { ArrowRightIcon, ReloadIcon, ClockIcon, TargetIcon } from './components/Icons';
 import { getAudioDuration, estimateProcessingTime, estimatePrecisionPotential } from './utils/audioUtils';
-import { FeedbackPopup } from './components/FeedbackPopup';
 
 
 type ProcessStage = 'idle' | 'transcribing' | 'cleaning' | 'completed';
@@ -22,7 +21,6 @@ const App: React.FC = () => {
   const [estimatedTime, setEstimatedTime] = useState<string | null>(null);
   const [precisionPotential, setPrecisionPotential] = useState<number | null>(null);
   const [isAppVisible, setIsAppVisible] = useState(false);
-  const [showFeedbackPopup, setShowFeedbackPopup] = useState(false);
 
   const MAX_FILE_SIZE_MB = 15;
   const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
@@ -63,55 +61,6 @@ const App: React.FC = () => {
         img.onerror = null;
     };
   }, []);
-
-  useEffect(() => {
-    const generateUUID = () => {
-      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-          var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
-          return v.toString(16);
-      });
-    }
-
-    try {
-        let deviceId = localStorage.getItem('longani_deviceId');
-        if (!deviceId) {
-            deviceId = generateUUID();
-            localStorage.setItem('longani_deviceId', deviceId);
-        }
-
-        const feedbackSubmitted = localStorage.getItem('longani_feedbackSubmitted');
-        const popupAlreadyShown = localStorage.getItem('longani_feedbackPopupShown');
-
-        if (feedbackSubmitted || popupAlreadyShown) {
-            return;
-        }
-
-        let visitCount = parseInt(localStorage.getItem('longani_visitCount') || '0', 10);
-        visitCount++;
-        localStorage.setItem('longani_visitCount', visitCount.toString());
-
-        if (visitCount >= 3) {
-            setShowFeedbackPopup(true);
-            localStorage.setItem('longani_feedbackPopupShown', 'true');
-        }
-    } catch (error) {
-        console.error("Could not access localStorage:", error);
-    }
-  }, []);
-
-  const handleFeedbackSubmit = () => {
-    try {
-        localStorage.setItem('longani_feedbackSubmitted', 'true');
-        setShowFeedbackPopup(false);
-    } catch (error) {
-        console.error("Could not set item in localStorage:", error);
-        setShowFeedbackPopup(false);
-    }
-  };
-
-  const handleFeedbackClose = () => {
-    setShowFeedbackPopup(false);
-  };
 
   const handleReset = useCallback(() => {
     setAudioFile(null);
@@ -334,7 +283,6 @@ const App: React.FC = () => {
           © {new Date().getFullYear()} LONGANI.
         </p>
       </footer>
-      {showFeedbackPopup && <FeedbackPopup onSubmit={handleFeedbackSubmit} onClose={handleFeedbackClose} />}
     </div>
   );
 };
