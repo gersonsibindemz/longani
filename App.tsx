@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect } from 'react';
 import { transcribeAudio, cleanTranscript } from './services/geminiService';
 import { Header, longaniLogoUrl } from './components/Header';
@@ -28,6 +27,25 @@ const App: React.FC = () => {
   const MAX_FILE_SIZE_MB = 15;
   const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+
+    const updateTheme = (e: MediaQueryListEvent | MediaQueryList) => {
+      if (e.matches) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    };
+
+    updateTheme(mediaQuery);
+    mediaQuery.addEventListener('change', updateTheme);
+
+    return () => {
+      mediaQuery.removeEventListener('change', updateTheme);
+    };
+  }, []);
+  
   useEffect(() => {
     const img = new Image();
     img.src = longaniLogoUrl;
@@ -189,16 +207,16 @@ const App: React.FC = () => {
     <div className={`min-h-screen flex flex-col transition-opacity duration-500 ease-in-out ${isAppVisible ? 'opacity-100' : 'opacity-0'}`}>
       <Header />
       <main className="container mx-auto px-4 py-8 flex-grow">
-        <h3 className="max-w-3xl mx-auto text-xl md:text-2xl font-light text-center text-gray-700 mb-8">
+        <h3 className="max-w-3xl mx-auto text-xl md:text-2xl font-light text-center text-gray-700 dark:text-gray-300 mb-8">
           Converta o seu áudio em texto transliterado, e transformado em documento com qualidade profissional.
         </h3>
-        <div className="max-w-3xl mx-auto bg-white/60 rounded-2xl shadow-lg p-6 md:p-8 border border-gray-200 backdrop-blur-sm">
+        <div className="max-w-3xl mx-auto bg-white/60 dark:bg-gray-800/60 rounded-2xl shadow-lg p-6 md:p-8 border border-gray-200 dark:border-gray-700 backdrop-blur-sm">
           
           <div className="flex flex-col sm:flex-row gap-4 items-start justify-center mb-4">
             {processStage === 'idle' && (
               <div className="w-full sm:w-auto">
                 <FileUpload key={fileInputKey} onFileChange={handleFileChange} disabled={isProcessing} />
-                <p className="text-gray-500 text-xs mt-2 text-center sm:text-left">
+                <p className="text-gray-500 dark:text-gray-400 text-xs mt-2 text-center sm:text-left">
                   Ficheiros de áudio suportados (.mp3, .wav, .m4a, etc.) com um limite de 15MB.
                 </p>
               </div>
@@ -207,7 +225,7 @@ const App: React.FC = () => {
             {processStage === 'completed' ? (
               <button
                 onClick={handleReset}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 bg-gray-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-gray-700 transition-all duration-300 transform hover:scale-105"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 bg-gray-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-gray-700 dark:bg-gray-500 dark:hover:bg-gray-400 transition-all duration-300 transform hover:scale-105"
               >
                 <ReloadIcon />
                 <span>Nova Transcrição</span>
@@ -216,7 +234,7 @@ const App: React.FC = () => {
               <button
                 onClick={handleProcessAudio}
                 disabled={!audioFile || isProcessing}
-                className={`w-full sm:w-auto flex items-center justify-center gap-2 bg-[#24a9c5] text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-[#1e8a9f] disabled:bg-[#d3eef4] disabled:cursor-not-allowed disabled:text-gray-500 transition-all duration-300 transform hover:scale-105 ${processStage !== 'idle' ? 'flex-grow sm:flex-grow-0' : ''}`}
+                className={`w-full sm:w-auto flex items-center justify-center gap-2 bg-[#24a9c5] text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-[#1e8a9f] disabled:bg-[#d3eef4] dark:disabled:bg-gray-700 disabled:cursor-not-allowed disabled:text-gray-500 dark:disabled:text-gray-400 transition-all duration-300 transform hover:scale-105 ${processStage !== 'idle' ? 'flex-grow sm:flex-grow-0' : ''}`}
               >
                 {isProcessing ? (
                   <Loader className="-ml-1 mr-2 text-white" />
@@ -231,47 +249,47 @@ const App: React.FC = () => {
           </div>
           
           {audioFile && processStage === 'idle' && (estimatedTime || precisionPotential !== null) && (
-            <div className="mt-4 text-left p-4 bg-gray-50/80 border border-gray-200/80 rounded-lg">
+            <div className="mt-4 text-left p-4 bg-gray-50/80 dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/80 rounded-lg">
                 <div className="grid grid-cols-1 sm:grid-cols-1 gap-y-4">
                     {estimatedTime && (
-                        <div className="flex items-start gap-3 text-sm text-gray-700">
+                        <div className="flex items-start gap-3 text-sm text-gray-700 dark:text-gray-300">
                             <ClockIcon className="w-5 h-5 text-[#24a9c5] flex-shrink-0 mt-1" />
                             <div>
                                 <p className="font-semibold">Tempo Estimado</p>
-                                <p className="text-gray-600">{estimatedTime}</p>
+                                <p className="text-gray-600 dark:text-gray-400">{estimatedTime}</p>
                             </div>
                         </div>
                     )}
                     {precisionPotential !== null && (
-                        <div className="flex items-start gap-3 text-sm text-gray-700">
+                        <div className="flex items-start gap-3 text-sm text-gray-700 dark:text-gray-300">
                            <TargetIcon className="w-5 h-5 text-[#24a9c5] flex-shrink-0 mt-1" />
                            <div className="w-full">
                                <div className="flex justify-between items-baseline mb-1">
                                    <p className="font-semibold">Potencial de Precisão</p>
-                                   <p className="font-bold text-lg text-gray-800">{precisionPotential}<span className="text-sm">%</span></p>
+                                   <p className="font-bold text-lg text-gray-800 dark:text-gray-200">{precisionPotential}<span className="text-sm">%</span></p>
                                </div>
-                               <div className="w-full bg-gray-200 rounded-full h-2">
+                               <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                                    <div className="bg-gradient-to-r from-[#24a9c5] to-[#1e8a9f] h-2 rounded-full" style={{ width: `${precisionPotential}%` }}></div>
                                </div>
                            </div>
                        </div>
                     )}
                 </div>
-                <p className="text-xs text-gray-500 mt-4 pt-3 border-t border-gray-200">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
                     <strong>Nota:</strong> As estimativas são calculadas com base nas características técnicas do ficheiro. A precisão final depende da clareza do áudio, ruído de fundo e sotaques.
                 </p>
             </div>
           )}
 
-          {error && <div className="text-center text-red-800 bg-red-100 p-3 my-4 rounded-lg border border-red-200">{error}</div>}
+          {error && <div className="text-center text-red-800 bg-red-100 p-3 my-4 rounded-lg border border-red-200 dark:bg-red-900/50 dark:text-red-300 dark:border-red-800/50">{error}</div>}
 
           {processStage !== 'idle' && (
             <div className="mt-6">
               {audioFile && (
-                <div className="mb-6 text-center p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                    <p className="text-sm font-semibold text-gray-600">A processar o ficheiro:</p>
-                    <p className="text-lg font-bold text-gray-800 truncate px-4">{audioFile.name}</p>
-                    <div className="mt-2 flex flex-wrap justify-center items-center gap-x-4 gap-y-1 text-xs text-gray-500">
+                <div className="mb-6 text-center p-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+                    <p className="text-sm font-semibold text-gray-600 dark:text-gray-300">A processar o ficheiro:</p>
+                    <p className="text-lg font-bold text-gray-800 dark:text-gray-200 truncate px-4">{audioFile.name}</p>
+                    <div className="mt-2 flex flex-wrap justify-center items-center gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
                         {estimatedTime && (
                             <span className="flex items-center gap-1">
                                 <ClockIcon className="w-4 h-4" />
@@ -311,7 +329,7 @@ const App: React.FC = () => {
             </div>
         )}
       </main>
-      <footer className="text-center py-6 text-gray-500 text-sm">
+      <footer className="text-center py-6 text-gray-500 dark:text-gray-400 text-sm select-none">
         <p>
           © {new Date().getFullYear()} LONGANI.
         </p>
