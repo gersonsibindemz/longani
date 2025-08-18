@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { StarIcon, ThumbsUpIcon, ThumbsDownIcon, CloseIcon } from './Icons';
 import { Loader } from './Loader';
@@ -60,18 +59,18 @@ export const FeedbackPopup: React.FC<FeedbackPopupProps> = ({ onSubmit, onClose 
 
   return (
     <div role="dialog" aria-modal="true" aria-labelledby="feedback-title" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 md:p-8 transform transition-all animate-in fade-in-0 zoom-in-95">
-        <button onClick={onClose} aria-label="Fechar" className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition-colors">
+      <div className="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 md:p-8 transform transition-all animate-in fade-in-0 zoom-in-95">
+        <button onClick={onClose} aria-label="Fechar" className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 dark:text-gray-500 dark:hover:text-gray-300 transition-colors">
           <CloseIcon />
         </button>
 
         <form onSubmit={handleSubmission} noValidate>
-          <h2 id="feedback-title" className="text-xl font-bold text-gray-800 text-center mb-2">O seu feedback é importante</h2>
-          <p className="text-center text-gray-600 mb-6">Ajude-nos a melhorar a sua experiência.</p>
+          <h2 id="feedback-title" className="text-xl font-bold text-gray-800 dark:text-gray-100 text-center mb-2">O seu feedback é importante</h2>
+          <p className="text-center text-gray-600 dark:text-gray-300 mb-6">Ajude-nos a melhorar a sua experiência.</p>
           
           <div className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 text-center">Avalie a sua experiência</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2 text-center">Avalie a sua experiência</label>
               <div className="flex justify-center space-x-2">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <button
@@ -87,7 +86,7 @@ export const FeedbackPopup: React.FC<FeedbackPopupProps> = ({ onSubmit, onClose 
                       className={`w-8 h-8 transition-colors duration-200 ${
                         (hoverRating || rating) >= star
                           ? 'text-yellow-400'
-                          : 'text-gray-300'
+                          : 'text-gray-300 dark:text-gray-600'
                       }`}
                     />
                   </button>
@@ -96,7 +95,7 @@ export const FeedbackPopup: React.FC<FeedbackPopupProps> = ({ onSubmit, onClose 
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 text-center">Recomendaria a um amigo?</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2 text-center">Recomendaria a um amigo?</label>
               <div className="flex justify-center space-x-4">
                 <button
                   type="button"
@@ -104,8 +103,8 @@ export const FeedbackPopup: React.FC<FeedbackPopupProps> = ({ onSubmit, onClose 
                   aria-pressed={liked === true}
                   className={`flex items-center gap-2 px-4 py-2 rounded-full border-2 transition-all ${
                     liked === true
-                      ? 'bg-green-100 border-green-400 text-green-700'
-                      : 'bg-white border-gray-300 text-gray-600 hover:border-green-400'
+                      ? 'bg-green-100 border-green-400 text-green-700 dark:bg-green-900/50 dark:border-green-700 dark:text-green-300'
+                      : 'bg-white border-gray-300 text-gray-600 hover:border-green-400 dark:bg-gray-700 dark:border-gray-500 dark:text-gray-300 dark:hover:border-green-500'
                   }`}
                 >
                   <ThumbsUpIcon className="w-5 h-5" />
@@ -117,8 +116,8 @@ export const FeedbackPopup: React.FC<FeedbackPopupProps> = ({ onSubmit, onClose 
                    aria-pressed={liked === false}
                   className={`flex items-center gap-2 px-4 py-2 rounded-full border-2 transition-all ${
                     liked === false
-                      ? 'bg-red-100 border-red-400 text-red-700'
-                      : 'bg-white border-gray-300 text-gray-600 hover:border-red-400'
+                      ? 'bg-red-100 border-red-400 text-red-700 dark:bg-red-900/50 dark:border-red-700 dark:text-red-300'
+                      : 'bg-white border-gray-300 text-gray-600 hover:border-red-400 dark:bg-gray-700 dark:border-gray-500 dark:text-gray-300 dark:hover:border-red-500'
                   }`}
                 >
                   <ThumbsDownIcon className="w-5 h-5" />
@@ -135,18 +134,18 @@ export const FeedbackPopup: React.FC<FeedbackPopupProps> = ({ onSubmit, onClose 
                 onChange={(e) => setComment(e.target.value)}
                 placeholder="Deixe um comentário (opcional)..."
                 rows={3}
-                className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#24a9c5] focus:border-[#24a9c5] transition"
+                className="w-full p-3 bg-gray-50 dark:bg-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#24a9c5] focus:border-[#24a9c5] transition dark:placeholder-gray-400"
               ></textarea>
             </div>
           </div>
           
-          {error && <p className="text-red-600 text-sm text-center mt-4">{error}</p>}
+          {error && <p className="text-red-600 dark:text-red-400 text-sm text-center mt-4">{error}</p>}
 
           <div className="mt-6">
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full flex items-center justify-center gap-2 bg-[#24a9c5] text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-[#1e8a9f] disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105"
+              className="w-full flex items-center justify-center gap-2 bg-[#24a9c5] text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-[#1e8a9f] disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105"
             >
               {isSubmitting ? (
                 <>
