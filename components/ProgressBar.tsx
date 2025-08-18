@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { CheckIcon } from './Icons';
 import { Loader } from './Loader';
@@ -32,8 +31,8 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({ stage }) => {
                 <div
                   className={`flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all duration-300
                     ${isCompleted ? 'bg-[#24a9c5] border-[#24a9c5] text-white' : ''}
-                    ${isCurrent ? 'bg-white border-[#24a9c5]' : ''}
-                    ${!isCompleted && !isCurrent ? 'bg-gray-200 border-gray-300' : ''}
+                    ${isCurrent ? 'bg-white border-[#24a9c5] dark:bg-gray-800' : ''}
+                    ${!isCompleted && !isCurrent ? 'bg-gray-200 border-gray-300 dark:bg-gray-700 dark:border-gray-600' : ''}
                   `}
                 >
                   {isCompleted ? (
@@ -41,12 +40,12 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({ stage }) => {
                   ) : isCurrent && (stage === 'transcribing' || stage === 'cleaning') ? (
                     <Loader className="w-6 h-6 text-[#24a9c5]" />
                   ) : (
-                    <span className={`font-bold ${isCurrent ? 'text-[#24a9c5]' : 'text-gray-500'}`}>{index + 1}</span>
+                    <span className={`font-bold ${isCurrent ? 'text-[#24a9c5]' : 'text-gray-500 dark:text-gray-400'}`}>{index + 1}</span>
                   )}
                 </div>
                 <p
                   className={`mt-2 text-xs font-semibold transition-colors duration-300
-                    ${isCompleted || isCurrent ? 'text-gray-800' : 'text-gray-400'}
+                    ${isCompleted || isCurrent ? 'text-gray-800 dark:text-gray-200' : 'text-gray-400 dark:text-gray-500'}
                   `}
                 >
                   {step.label}
@@ -54,7 +53,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({ stage }) => {
               </div>
               {index < steps.length - 1 && (
                  <div className={`flex-1 h-1 mx-2 transition-colors duration-500 rounded
-                    ${isCompleted || isCurrent ? 'bg-[#24a9c5]' : 'bg-gray-300'}
+                    ${isCompleted || isCurrent ? 'bg-[#24a9c5]' : 'bg-gray-300 dark:bg-gray-700'}
                  `}></div>
               )}
             </React.Fragment>
