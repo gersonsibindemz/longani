@@ -45,6 +45,65 @@ const App: React.FC = () => {
   }, []);
   
   useEffect(() => {
+    // Dynamically inject head tags to mask the logo URL origin
+    
+    // 1. Preload link
+    const preloadLink = document.createElement('link');
+    preloadLink.rel = 'preload';
+    preloadLink.href = longaniLogoUrl;
+    preloadLink.as = 'image';
+    document.head.appendChild(preloadLink);
+
+    // 2. Apple touch icon
+    const appleTouchIconLink = document.createElement('link');
+    appleTouchIconLink.rel = 'apple-touch-icon';
+    appleTouchIconLink.href = longaniLogoUrl;
+    document.head.appendChild(appleTouchIconLink);
+
+    // 3. Web App Manifest
+    const manifest = {
+      short_name: "LONGANI",
+      name: "LONGANI - AI Audio Transcription",
+      description: "An intelligent web application that transcribes audio files and refines them into clean, professionally formatted documents.",
+      icons: [
+        {
+          src: longaniLogoUrl,
+          sizes: "192x192",
+          type: "image/png",
+          purpose: "any maskable"
+        },
+        {
+          src: longaniLogoUrl,
+          sizes: "512x512",
+          type: "image/png",
+          purpose: "any maskable"
+        }
+      ],
+      start_url: ".",
+      display: "standalone",
+      theme_color: "#24a9c5",
+      background_color: "#f3f4f6"
+    };
+    
+    const manifestString = JSON.stringify(manifest);
+    const manifestBlob = new Blob([manifestString], { type: 'application/json' });
+    const manifestUrl = URL.createObjectURL(manifestBlob);
+    
+    const manifestLink = document.createElement('link');
+    manifestLink.rel = 'manifest';
+    manifestLink.href = manifestUrl;
+    document.head.appendChild(manifestLink);
+
+    // Clean up the object URL when the component unmounts
+    return () => {
+        URL.revokeObjectURL(manifestUrl);
+        document.head.removeChild(preloadLink);
+        document.head.removeChild(appleTouchIconLink);
+        document.head.removeChild(manifestLink);
+    };
+  }, []);
+
+  useEffect(() => {
     const img = new Image();
     img.src = longaniLogoUrl;
     const showApp = () => setIsAppVisible(true);
