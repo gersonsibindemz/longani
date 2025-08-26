@@ -9,6 +9,9 @@ import { ArrowRightIcon, ReloadIcon, ClockIcon, TargetIcon } from './components/
 import { getAudioDuration, estimateProcessingTime, estimatePrecisionPotential } from './utils/audioUtils';
 
 
+const encodedPwaLogoUrl = "aHR0cHM6Ly9pLnBvc3RpbWcuY2MvZDA4THJEZkMvTG9uZ2FuaS1Mb2dvLVBXQS5wbmc=";
+const pwaLogoUrl = atob(encodedPwaLogoUrl);
+
 type ProcessStage = 'idle' | 'transcribing' | 'cleaning' | 'completed';
 
 const App: React.FC = () => {
@@ -47,33 +50,40 @@ const App: React.FC = () => {
   useEffect(() => {
     // Dynamically inject head tags to mask the logo URL origin
     
-    // 1. Preload link
+    // 1. Preload link for header logo (remains unchanged)
     const preloadLink = document.createElement('link');
     preloadLink.rel = 'preload';
     preloadLink.href = longaniLogoUrl;
     preloadLink.as = 'image';
     document.head.appendChild(preloadLink);
 
-    // 2. Apple touch icon
+    // 2. Apple touch icon (use PWA logo)
     const appleTouchIconLink = document.createElement('link');
     appleTouchIconLink.rel = 'apple-touch-icon';
-    appleTouchIconLink.href = longaniLogoUrl;
+    appleTouchIconLink.href = pwaLogoUrl;
     document.head.appendChild(appleTouchIconLink);
 
-    // 3. Web App Manifest
+    // 3. Favicon (use PWA logo)
+    const faviconLink = document.createElement('link');
+    faviconLink.rel = 'icon';
+    faviconLink.type = 'image/png';
+    faviconLink.href = pwaLogoUrl;
+    document.head.appendChild(faviconLink);
+
+    // 4. Web App Manifest
     const manifest = {
       short_name: "LONGANI",
       name: "LONGANI - AI Audio Transcription",
       description: "An intelligent web application that transcribes audio files and refines them into clean, professionally formatted documents.",
       icons: [
         {
-          src: longaniLogoUrl,
+          src: pwaLogoUrl,
           sizes: "192x192",
           type: "image/png",
           purpose: "any maskable"
         },
         {
-          src: longaniLogoUrl,
+          src: pwaLogoUrl,
           sizes: "512x512",
           type: "image/png",
           purpose: "any maskable"
@@ -100,6 +110,7 @@ const App: React.FC = () => {
         document.head.removeChild(preloadLink);
         document.head.removeChild(appleTouchIconLink);
         document.head.removeChild(manifestLink);
+        document.head.removeChild(faviconLink);
     };
   }, []);
 
