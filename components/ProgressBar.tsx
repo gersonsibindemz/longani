@@ -22,7 +22,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({ stage }) => {
     <div className="w-full">
       <div className="flex items-center justify-between">
         {steps.map((step, index) => {
-          const isCompleted = currentStepIndex > index;
+          const isCompleted = currentStepIndex > index || stage === 'completed';
           const isCurrent = currentStepIndex === index;
 
           return (
@@ -31,7 +31,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({ stage }) => {
                 <div
                   className={`flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all duration-300
                     ${isCompleted ? 'bg-[#24a9c5] border-[#24a9c5] text-white' : ''}
-                    ${isCurrent ? 'bg-white border-[#24a9c5] dark:bg-gray-800' : ''}
+                    ${isCurrent && !isCompleted ? 'bg-white border-[#24a9c5] dark:bg-gray-800' : ''}
                     ${!isCompleted && !isCurrent ? 'bg-gray-200 border-gray-300 dark:bg-gray-700 dark:border-gray-600' : ''}
                   `}
                 >
