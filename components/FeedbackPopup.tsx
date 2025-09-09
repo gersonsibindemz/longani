@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { StarIcon, ThumbsUpIcon, ThumbsDownIcon, CloseIcon } from './Icons';
 import { Loader } from './Loader';
+import { getFriendlyErrorMessage } from '../utils/audioUtils';
 
 interface FeedbackPopupProps {
   onSubmit: () => void;
@@ -52,7 +53,8 @@ export const FeedbackPopup: React.FC<FeedbackPopupProps> = ({ onSubmit, onClose 
         throw new Error('A submissão do feedback falhou. Por favor, tente novamente.');
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ocorreu um erro desconhecido.');
+      const friendlyMessage = getFriendlyErrorMessage(err);
+      setError(`O envio do feedback falhou. ${friendlyMessage}`);
       setIsSubmitting(false);
     }
   };
