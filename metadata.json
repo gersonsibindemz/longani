@@ -1,5 +1,5 @@
 {
-  "name": "LONGANI",
+  "name": "Longani (Current)",
   "description": "Uma aplicação web inteligente que transcreve ficheiros de áudio para um texto literal e bruto e, de seguida, refina-o para um documento limpo e profissionalmente formatado usando a API Gemini.",
   "requestFramePermissions": [],
   "prompt": ""
