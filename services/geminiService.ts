@@ -1,5 +1,5 @@
-
-import { GoogleGenAI } from "@google/genai";
+// FIX: Replaced deprecated `GenerateContentRequest` with `GenerateContentParameters`.
+import { GoogleGenAI, GenerateContentParameters } from "@google/genai";
 
 if (!process.env.API_KEY) {
     throw new Error("API_KEY environment variable not set.");
@@ -7,23 +7,45 @@ if (!process.env.API_KEY) {
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
+/**
+ * A generic function to handle streaming content generation from the Gemini API.
+ * It centralizes the API call, streaming loop, and error handling.
+ * @param request The complete request object for the `generateContentStream` API call.
+ * @returns An async generator that yields the text chunks from the response.
+ */
+// FIX: Replaced deprecated `GenerateContentRequest` with `GenerateContentParameters`.
+async function* generateStream(request: GenerateContentParameters): AsyncGenerator<string> {
+    try {
+        const responseStream = await ai.models.generateContentStream(request);
+        for await (const chunk of responseStream) {
+            // Ensure we only yield non-empty text parts
+            if (chunk.text) {
+                yield chunk.text;
+            }
+        }
+    } catch (error) {
+        // Log the original error here for context, but re-throw it so the UI layer
+        // can use the full error details to generate a user-friendly message.
+        console.error("Error during Gemini API stream:", error);
+        throw error;
+    }
+}
+
+
 const transcribePrompt = `
-Your task is to perform a fully literal transcription of the following audio. The language is likely Portuguese from Mozambique, but you should auto-detect it.
+Your task is a literal audio transcription. Auto-detect the language (likely Mozambican Portuguese).
 
-**Instructions:**
-- Transcribe every word exactly as it is spoken, including all natural expressions, pauses, hesitations, stutters, and filler words (like "uhm," "ah," "tipo," etc.).
-- DO NOT summarize or rephrase the content.
-- DO NOT correct grammar, pronunciation, or misspoken words.
-- Use punctuation (commas, ellipses, dashes) to reflect the speaker's natural tone, rhythm, and flow of speech. For example, use '...' for a thoughtful pause and a dash '-' for an abrupt stop.
-- Create new, short paragraphs only when there is a clear break in thought or a significant pause for breath.
-- If a word or phrase is unclear or inaudible, mark it as [inaudible].
-- If there is a noticeable pause in speech, mark it as [pause].
-
-The final text must be a raw, unfiltered representation of the spoken audio.
+**Rules:**
+- Transcribe everything exactly as spoken: filler words ("uhm," "ah"), stutters, pauses, and mistakes.
+- Do not summarize, rephrase, or correct grammar.
+- Use punctuation (..., -) to reflect speech patterns.
+- Use short paragraphs for breaks in thought.
+- Mark unclear audio as [inaudible] and long pauses as [pause].
+- The output must be a raw, unfiltered transcript.
 `;
 
 const cleanPromptTemplate = (rawTranscript: string) => `
-Your task is to take the following raw, literal transcript and transform it into a clean, professional, and well-organized written document in Portuguese.
+You are an expert editor. Your task is to convert the raw transcript below into a well-structured, professional HTML document in Portuguese.
 
 **Raw Transcript:**
 ---
@@ -31,63 +53,48 @@ ${rawTranscript}
 ---
 
 **Instructions:**
-- Preserve the speaker's original message, ideas, and authentic voice. DO NOT add any new information or content that was not in the original transcript.
-- Restructure the content for clarity and readability.
-- Add appropriate punctuation such as periods, commas, and question marks to create complete, grammatically correct sentences.
-- Organize the text into logical paragraphs.
-- Insert descriptive section headings or subheadings where they would help structure the document. Use markdown for formatting (e.g., ## Title).
-- Use bullet points (using a '-' or '*') for lists of items, steps, or distinct ideas.
-- Correct any grammatical errors or awkward phrasing from the spoken version, but ensure the tone remains authentic to the speaker.
-
-The final output should be a professionally formatted version of the original speech, ready for reading. Output only the cleaned text.
+1.  **Analyze and Structure:** Identify main topics and create a logical structure using HTML headings (\`<h2>\`, \`<h3>\`, \`<h4>\`). DO NOT use \`<h1>\`. Organize the content actively.
+2.  **Format Lists:** Use \`<ul>\` for bullet points and \`<ol>\` for numbered steps where appropriate.
+3.  **Refine Content:** Correct grammar and remove filler words ("uhm", "tipo"). Rewrite for clarity while strictly preserving the original meaning and speaker's voice. Use \`<p>\` tags for paragraphs.
+4.  **Add Emphasis:** Use \`<strong>\` for key terms and \`<em>\` for subtle emphasis.
+5.  **Output:** Provide ONLY the HTML body content. Do not include \`<html>\`, \`<body>\`, or markdown fences (\`\`\`html\`\`\`).
 `;
 
-export async function* transcribeAudio(audioBase64: string, audioMimeType: string): AsyncGenerator<string> {
-    try {
-        const audioPart = {
-            inlineData: {
-                data: audioBase64,
-                mimeType: audioMimeType,
-            },
-        };
+export function transcribeAudio(audioBase64: string, audioMimeType: string): AsyncGenerator<string> {
+    const audioPart = {
+        inlineData: {
+            data: audioBase64,
+            mimeType: audioMimeType,
+        },
+    };
 
-        const responseStream = await ai.models.generateContentStream({
-            model: 'gemini-2.5-flash',
-            contents: { parts: [audioPart, { text: transcribePrompt }] },
-            config: {
-                temperature: 0.1, // Lower temperature for more deterministic, literal transcription
-            }
-        });
-        
-        for await (const chunk of responseStream) {
-            yield chunk.text;
+    // FIX: Replaced deprecated `GenerateContentRequest` with `GenerateContentParameters`.
+    const request: GenerateContentParameters = {
+        model: 'gemini-2.5-flash',
+        contents: [{ parts: [audioPart, { text: transcribePrompt }] }],
+        config: {
+            temperature: 0.1, // Lower temperature for more deterministic, literal transcription
         }
-    } catch (error) {
-        console.error("Error during transcription stream:", error);
-        throw new Error("Failed to transcribe audio. The model may not have been able to process the file.");
-    }
+    };
+    
+    return generateStream(request);
 };
 
-export async function* cleanTranscript(rawTranscript: string): AsyncGenerator<string> {
+export function cleanTranscript(rawTranscript: string): AsyncGenerator<string> {
     if (!rawTranscript.trim()) {
-        return;
+        // Return an empty generator instead of just returning
+        return (async function*() {})();
     }
 
-    try {
-        const prompt = cleanPromptTemplate(rawTranscript);
-        const responseStream = await ai.models.generateContentStream({
-            model: 'gemini-2.5-flash',
-            contents: prompt,
-            config: {
-                temperature: 0.5, // Allow for some creativity in formatting
-            }
-        });
-
-        for await (const chunk of responseStream) {
-            yield chunk.text;
+    const prompt = cleanPromptTemplate(rawTranscript);
+    // FIX: Replaced deprecated `GenerateContentRequest` with `GenerateContentParameters`.
+    const request: GenerateContentParameters = {
+        model: 'gemini-2.5-flash',
+        contents: [{ parts: [{ text: prompt }] }],
+        config: {
+            temperature: 0.5, // Allow for some creativity in formatting
         }
-    } catch (error) {
-        console.error("Error during transcript cleaning stream:", error);
-        throw new Error("Failed to clean up the transcript.");
-    }
+    };
+
+    return generateStream(request);
 };
