@@ -1,18 +1,25 @@
 // service-worker.js
 
-const CACHE_NAME = 'longani-cache-v1';
+const CACHE_NAME = 'longani-cache-v2';
 const urlsToCache = [
   '/',
   '/index.html',
-  '/manifest.json'
-  // Note: We are not caching external resources like fonts, images from postimg,
-  // or scripts from esm.sh. The browser's standard HTTP cache will handle those.
-  // This service worker focuses on making the core application shell available offline.
+  '/manifest.json',
+  '/index.tsx',
+  '/App.tsx',
+  '/services/geminiService.ts',
+  '/components/Header.tsx',
+  '/components/FileUpload.tsx',
+  '/components/TranscriptDisplay.tsx',
+  '/components/Loader.tsx',
+  '/components/Icons.tsx',
+  '/components/ProgressBar.tsx',
+  '/utils/audioUtils.ts',
+  '/components/ThemeSwitcher.tsx',
 ];
 
 // Install event: open a cache and add the core app shell files to it.
 self.addEventListener('install', (event) => {
-  // Perform install steps.
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
@@ -20,7 +27,7 @@ self.addEventListener('install', (event) => {
         return cache.addAll(urlsToCache);
       })
       .catch(err => {
-        console.error('Service Worker: Caching failed', err);
+        console.error('Service Worker: Caching failed during install', err);
       })
   );
 });
@@ -42,19 +49,34 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch event: serve app shell from cache, otherwise fetch from network.
+// Fetch event: Implements a "Stale-While-Revalidate" strategy.
+// This serves content from cache immediately for speed and offline reliability,
+// then updates the cache with a fresh version from the network in the background.
 self.addEventListener('fetch', (event) => {
-  // This is a "Cache first, falling back to network" strategy.
-  // It's ideal for the static app shell.
+  // We only want to handle GET requests.
+  if (event.request.method !== 'GET' || !event.request.url.startsWith('http')) {
+      return;
+  }
+
   event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        // If the request is in the cache, return the cached response.
-        if (response) {
-          return response;
-        }
-        // If the request is not in the cache, fetch it from the network.
-        return fetch(event.request);
-      })
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.match(event.request).then((cachedResponse) => {
+        const fetchPromise = fetch(event.request).then((networkResponse) => {
+          // If the fetch is successful, update the cache with the new response.
+          if (networkResponse && (networkResponse.status === 200 || networkResponse.status === 0)) {
+            cache.put(event.request, networkResponse.clone());
+          }
+          return networkResponse;
+        }).catch(err => {
+            console.error('Service Worker: Network fetch failed.', err);
+            // When network fails, we've already returned the cached response (if available).
+            // If there was no cached response, the promise will reject, and the browser will show its offline error page.
+            // This is acceptable as we can't fulfill a request for a resource we've never seen before while offline.
+        });
+
+        // Return the cached response immediately if available, otherwise wait for the network response.
+        return cachedResponse || fetchPromise;
+      });
+    })
   );
 });
