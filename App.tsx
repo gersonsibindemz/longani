@@ -28,6 +28,7 @@ const App: React.FC = () => {
   const [showExitToast, setShowExitToast] = useState(false);
   const [theme, setTheme] = useState<Theme>('system');
   const [isPWA, setIsPWA] = useState(false);
+  const [showVideoSplash, setShowVideoSplash] = useState(false);
   const [expandedTranscript, setExpandedTranscript] = useState<ExpandedTranscript>('none');
   const [fileSelectionSuccess, setFileSelectionSuccess] = useState(false);
   const [outputPreference, setOutputPreference] = useState<OutputPreference>('both');
@@ -35,15 +36,34 @@ const App: React.FC = () => {
   const MAX_FILE_SIZE_MB = 15;
   const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
-  // This useEffect runs once on mount to detect PWA and load theme preference.
+  // This useEffect runs once on mount to detect PWA, load theme, and handle initial loading animation.
   useEffect(() => {
     const pwaQuery = window.matchMedia('(display-mode: standalone)');
     if (pwaQuery.matches) {
       setIsPWA(true);
+      setShowVideoSplash(true); // Enable video splash for PWA
       const storedTheme = localStorage.getItem('theme') as Theme | null;
       if (storedTheme && ['light', 'dark', 'system'].includes(storedTheme)) {
         setTheme(storedTheme);
       }
+      // For PWA, app visibility is controlled by the video splash component.
+    } else {
+      // For non-PWA, use image preloading.
+      const img = new Image();
+      img.src = longaniLogoUrl;
+      const showApp = () => setIsAppVisible(true);
+
+      img.onload = showApp;
+      img.onerror = showApp; // Show app even if logo fails
+
+      // Fallback timer for cached images
+      const timer = setTimeout(showApp, 2500);
+
+      return () => {
+        clearTimeout(timer);
+        img.onload = null;
+        img.onerror = null;
+      };
     }
   }, []);
 
@@ -79,24 +99,6 @@ const App: React.FC = () => {
       mediaQuery.removeEventListener('change', handleThemeChange);
     };
   }, [theme, isPWA]);
-
-  useEffect(() => {
-    const img = new Image();
-    img.src = longaniLogoUrl;
-    const showApp = () => setIsAppVisible(true);
-
-    img.onload = showApp;
-    img.onerror = showApp; // Show app even if logo fails
-
-    // Fallback timer in case the events don't fire (e.g., for cached images)
-    const timer = setTimeout(showApp, 2500);
-
-    return () => {
-        clearTimeout(timer);
-        img.onload = null;
-        img.onerror = null;
-    };
-  }, []);
 
   useEffect(() => {
     // This feature is only for installed PWAs on mobile-like devices where a back button closes the app
@@ -271,212 +273,239 @@ const App: React.FC = () => {
     setExpandedTranscript(current => (current === transcriptType ? 'none' : transcriptType));
   };
   
+  const handleVideoEnd = useCallback(() => {
+    setShowVideoSplash(false);
+    setIsAppVisible(true);
+  }, []);
+
   const isProcessing = processStage === 'transcribing' || processStage === 'cleaning';
   const isAccordionMode = processStage === 'completed';
   const finalDisplayIsSingleColumn = processStage === 'completed' && outputPreference !== 'both';
 
   return (
-    <div className={`min-h-screen flex flex-col transition-opacity duration-500 ease-in-out ${isAppVisible ? 'opacity-100' : 'opacity-0'}`}>
-      <Header />
-      <main className="container mx-auto px-4 py-8 flex-grow">
-        <h3 className="max-w-3xl mx-auto text-xl md:text-2xl font-light text-center text-gray-700 dark:text-gray-300 mb-8">
-          Transforme seu áudio em texto profissional, pronto para usar.
-        </h3>
-        <div className="max-w-3xl mx-auto bg-white/60 dark:bg-gray-800/60 rounded-2xl shadow-lg p-6 md:p-8 border border-gray-200 dark:border-gray-700 backdrop-blur-sm">
-          
-          <div className="flex flex-col sm:flex-row gap-4 items-start justify-center mb-4">
-            {processStage === 'idle' && (
-              <div className="w-full sm:w-auto">
-                <FileUpload key={fileInputKey} onFileChange={handleFileChange} disabled={isProcessing} fileSelected={fileSelectionSuccess} />
-                <p className="text-gray-500 dark:text-gray-400 text-xs mt-2 text-center sm:text-left">
-                  Ficheiros de áudio suportados (.mp3, .wav, .m4a, etc.) com um limite de 15MB.
-                </p>
-              </div>
-            )}
+    <>
+      {showVideoSplash && (
+        <div 
+          role="dialog"
+          aria-modal="true"
+          aria-label="Loading animation"
+          className="fixed inset-0 z-[1000] flex items-center justify-center bg-gray-100 dark:bg-gray-900"
+          onClick={handleVideoEnd} // Allow skipping by clicking/tapping
+        >
+          <video
+            src="https://streamable.com/vh2wrj/download.mp4"
+            autoPlay
+            muted
+            playsInline
+            onEnded={handleVideoEnd}
+            onError={handleVideoEnd} // Fallback if video fails
+            className="w-auto h-auto max-w-[80vw] max-h-[80vh] outline-none"
+            aria-hidden="true"
+          />
+        </div>
+      )}
+      <div className={`min-h-screen flex flex-col transition-opacity duration-500 ease-in-out ${isAppVisible ? 'opacity-100' : 'opacity-0'}`}>
+        <Header />
+        <main className="container mx-auto px-4 py-8 flex-grow">
+          <h3 className="max-w-3xl mx-auto text-xl md:text-2xl font-light text-center text-gray-700 dark:text-gray-300 mb-8">
+            Transforme seu áudio em texto profissional, pronto para usar.
+          </h3>
+          <div className="max-w-3xl mx-auto bg-white/60 dark:bg-gray-800/60 rounded-2xl shadow-lg p-6 md:p-8 border border-gray-200 dark:border-gray-700 backdrop-blur-sm">
             
-            {processStage === 'completed' ? (
-              <button
-                onClick={handleReset}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 bg-gray-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-gray-700 dark:bg-gray-500 dark:hover:bg-gray-400 transition-all duration-300 transform hover:scale-105"
-              >
-                <ReloadIcon />
-                <span>Nova Transcrição</span>
-              </button>
-            ) : (
-              <button
-                onClick={handleProcessAudio}
-                disabled={!audioFile || isProcessing}
-                className={`w-full sm:w-auto flex items-center justify-center gap-2 bg-[#24a9c5] text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-[#1e8a9f] disabled:bg-[#d3eef4] dark:disabled:bg-gray-700 disabled:cursor-not-allowed disabled:text-gray-500 dark:disabled:text-gray-400 transition-all duration-300 transform hover:scale-105 ${processStage !== 'idle' ? 'flex-grow sm:flex-grow-0' : ''}`}
-              >
-                {isProcessing ? (
-                  <Loader className="-ml-1 mr-2 text-white" />
-                ) : (
-                  <ArrowRightIcon />
-                )}
-                <span>
-                  {isProcessing ? (processStage === 'transcribing' ? 'A transcrever...' : 'A otimizar...') : 'Iniciar Processo'}
-                </span>
-              </button>
-            )}
-          </div>
-          
-          {audioFile && processStage === 'idle' && (estimatedTime || precisionPotential !== null) && (
-            <div className="mt-4 text-left p-4 bg-gray-50/80 dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/80 rounded-lg">
-                <div className="grid grid-cols-1 sm:grid-cols-1 gap-y-4">
-                    {estimatedTime && (
-                        <div className="flex items-start gap-3 text-sm text-gray-700 dark:text-gray-300">
-                            <ClockIcon className="w-5 h-5 text-[#24a9c5] flex-shrink-0 mt-1" />
-                            <div>
-                                <div className="flex items-center gap-1.5">
-                                    <p className="font-semibold">Tempo Estimado</p>
-                                    <div className="group relative flex items-center cursor-help">
-                                        <InfoIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-60 p-3 bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-10 dark:bg-gray-200 dark:text-gray-800">
-                                            Este é o tempo aproximado que o processo de transcrição e otimização irá demorar.
-                                            <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-x-8 border-x-transparent border-t-8 border-t-gray-800 dark:border-t-gray-200"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <p className="text-gray-600 dark:text-gray-400">{estimatedTime}</p>
-                            </div>
-                        </div>
-                    )}
-                    {precisionPotential !== null && (
-                       <div className="flex items-start gap-3 text-sm text-gray-700 dark:text-gray-300">
-                           <TargetIcon className="w-5 h-5 text-[#24a9c5] flex-shrink-0 mt-1" />
-                           <div className="w-full">
-                               <div className="flex justify-between items-baseline mb-1">
-                                   <div className="flex items-center gap-1.5">
-                                       <p className="font-semibold">Potencial de Precisão</p>
-                                       <div className="group relative flex items-center cursor-help">
-                                           <InfoIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-                                           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-60 p-3 bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-10 dark:bg-gray-200 dark:text-gray-800">
-                                               Esta percentagem reflete a qualidade do ficheiro de áudio. Formatos de alta qualidade (como WAV) tendem a ter maior precisão na transcrição.
-                                               <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-x-8 border-x-transparent border-t-8 border-t-gray-800 dark:border-t-gray-200"></div>
-                                           </div>
-                                       </div>
-                                   </div>
-                                   <p className="font-bold text-lg text-gray-800 dark:text-gray-200">{precisionPotential}<span className="text-sm">%</span></p>
-                               </div>
-                               <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                                   <div className="bg-gradient-to-r from-[#24a9c5] to-[#1e8a9f] h-2 rounded-full" style={{ width: `${precisionPotential}%` }}></div>
-                               </div>
-                           </div>
-                       </div>
-                    )}
-                </div>
-                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-4">
-                  <div className="flex items-start gap-3 text-sm text-gray-700 dark:text-gray-300">
-                    <ColumnsIcon className="w-5 h-5 text-[#24a9c5] flex-shrink-0 mt-1" />
-                    <div>
-                      <p id="output-preference-label" className="font-semibold mb-2">Visualização do Resultado</p>
-                      <div role="radiogroup" aria-labelledby="output-preference-label" className="flex flex-wrap gap-2">
-                        <button role="radio" aria-checked={outputPreference === 'both'} onClick={() => setOutputPreference('both')} className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${outputPreference === 'both' ? 'bg-[#24a9c5] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'}`}>
-                          Ambos
-                        </button>
-                        <button role="radio" aria-checked={outputPreference === 'raw'} onClick={() => setOutputPreference('raw')} className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${outputPreference === 'raw' ? 'bg-[#24a9c5] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'}`}>
-                          Apenas Literal
-                        </button>
-                        <button role="radio" aria-checked={outputPreference === 'cleaned'} onClick={() => setOutputPreference('cleaned')} className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${outputPreference === 'cleaned' ? 'bg-[#24a9c5] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'}`}>
-                          Apenas Formatado
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    <strong>Nota:</strong> As estimativas são calculadas com base nas características técnicas do ficheiro. A precisão final depende da clareza do áudio, ruído de fundo e sotaques.
+            <div className="flex flex-col sm:flex-row gap-4 items-start justify-center mb-4">
+              {processStage === 'idle' && (
+                <div className="w-full sm:w-auto">
+                  <FileUpload key={fileInputKey} onFileChange={handleFileChange} disabled={isProcessing} fileSelected={fileSelectionSuccess} />
+                  <p className="text-gray-500 dark:text-gray-400 text-xs mt-2 text-center sm:text-left">
+                    Ficheiros de áudio suportados (.mp3, .wav, .m4a, etc.) com um limite de 15MB.
                   </p>
                 </div>
-            </div>
-          )}
-
-          {error && <div className="text-center text-red-800 bg-red-100 p-3 my-4 rounded-lg border border-red-200 dark:bg-red-900/50 dark:text-red-300 dark:border-red-800/50">{error}</div>}
-
-          {processStage !== 'idle' && (
-            <div className="mt-6">
-              {audioFile && (
-                <div className="mb-6 text-center p-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
-                    <p className="text-sm font-semibold text-gray-600 dark:text-gray-300">A processar o ficheiro:</p>
-                    {isProcessing ? (
-                        <div className="relative w-full flex overflow-x-hidden h-7 items-center">
-                            <div className="animate-marquee whitespace-nowrap flex items-center">
-                                <p className="text-lg font-bold text-gray-800 dark:text-gray-200 px-4">
-                                    {audioFile.name}
-                                </p>
-                            </div>
-                            <div className="absolute top-0 animate-marquee2 whitespace-nowrap flex items-center h-full">
-                                <p className="text-lg font-bold text-gray-800 dark:text-gray-200 px-4">
-                                    {audioFile.name}
-                                </p>
-                            </div>
-                        </div>
-                    ) : (
-                        <p className="text-lg font-bold text-gray-800 dark:text-gray-200 truncate px-4">
-                            {audioFile.name}
-                        </p>
-                    )}
-                    <div className="mt-2 flex flex-wrap justify-center items-center gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
-                        {estimatedTime && (
-                            <span className="flex items-center gap-1">
-                                <ClockIcon className="w-4 h-4" />
-                                <span>Tempo Est.: {estimatedTime}</span>
-                            </span>
-                        )}
-                        {precisionPotential !== null && (
-                            <span className="flex items-center gap-1">
-                                <TargetIcon className="w-4 h-4" />
-                                <span>Potencial: {precisionPotential}%</span>
-                            </span>
-                        )}
-                    </div>
-                </div>
               )}
-              <ProgressBar stage={processStage} />
+              
+              {processStage === 'completed' ? (
+                <button
+                  onClick={handleReset}
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 bg-gray-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-gray-700 dark:bg-gray-500 dark:hover:bg-gray-400 transition-all duration-300 transform hover:scale-105"
+                >
+                  <ReloadIcon />
+                  <span>Nova Transcrição</span>
+                </button>
+              ) : (
+                <button
+                  onClick={handleProcessAudio}
+                  disabled={!audioFile || isProcessing}
+                  className={`w-full sm:w-auto flex items-center justify-center gap-2 bg-[#24a9c5] text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-[#1e8a9f] disabled:bg-[#d3eef4] dark:disabled:bg-gray-700 disabled:cursor-not-allowed disabled:text-gray-500 dark:disabled:text-gray-400 transition-all duration-300 transform hover:scale-105 ${processStage !== 'idle' ? 'flex-grow sm:flex-grow-0' : ''}`}
+                >
+                  {isProcessing ? (
+                    <Loader className="-ml-1 mr-2 text-white" />
+                  ) : (
+                    <ArrowRightIcon />
+                  )}
+                  <span>
+                    {isProcessing ? (processStage === 'transcribing' ? 'A transcrever...' : 'A otimizar...') : 'Iniciar Processo'}
+                  </span>
+                </button>
+              )}
             </div>
+            
+            {audioFile && processStage === 'idle' && (estimatedTime || precisionPotential !== null) && (
+              <div className="mt-4 text-left p-4 bg-gray-50/80 dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/80 rounded-lg">
+                  <div className="grid grid-cols-1 sm:grid-cols-1 gap-y-4">
+                      {estimatedTime && (
+                          <div className="flex items-start gap-3 text-sm text-gray-700 dark:text-gray-300">
+                              <ClockIcon className="w-5 h-5 text-[#24a9c5] flex-shrink-0 mt-1" />
+                              <div>
+                                  <div className="flex items-center gap-1.5">
+                                      <p className="font-semibold">Tempo Estimado</p>
+                                      <div className="group relative flex items-center cursor-help">
+                                          <InfoIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-60 p-3 bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-10 dark:bg-gray-200 dark:text-gray-800">
+                                              Este é o tempo aproximado que o processo de transcrição e otimização irá demorar.
+                                              <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-x-8 border-x-transparent border-t-8 border-t-gray-800 dark:border-t-gray-200"></div>
+                                          </div>
+                                      </div>
+                                  </div>
+                                  <p className="text-gray-600 dark:text-gray-400">{estimatedTime}</p>
+                              </div>
+                          </div>
+                      )}
+                      {precisionPotential !== null && (
+                         <div className="flex items-start gap-3 text-sm text-gray-700 dark:text-gray-300">
+                             <TargetIcon className="w-5 h-5 text-[#24a9c5] flex-shrink-0 mt-1" />
+                             <div className="w-full">
+                                 <div className="flex justify-between items-baseline mb-1">
+                                     <div className="flex items-center gap-1.5">
+                                         <p className="font-semibold">Potencial de Precisão</p>
+                                         <div className="group relative flex items-center cursor-help">
+                                             <InfoIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                                             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-60 p-3 bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-10 dark:bg-gray-200 dark:text-gray-800">
+                                                 Esta percentagem reflete a qualidade do ficheiro de áudio. Formatos de alta qualidade (como WAV) tendem a ter maior precisão na transcrição.
+                                                 <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-x-8 border-x-transparent border-t-8 border-t-gray-800 dark:border-t-gray-200"></div>
+                                             </div>
+                                         </div>
+                                     </div>
+                                     <p className="font-bold text-lg text-gray-800 dark:text-gray-200">{precisionPotential}<span className="text-sm">%</span></p>
+                                 </div>
+                                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                     <div className="bg-gradient-to-r from-[#24a9c5] to-[#1e8a9f] h-2 rounded-full" style={{ width: `${precisionPotential}%` }}></div>
+                                 </div>
+                             </div>
+                         </div>
+                      )}
+                  </div>
+                  <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-4">
+                    <div className="flex items-start gap-3 text-sm text-gray-700 dark:text-gray-300">
+                      <ColumnsIcon className="w-5 h-5 text-[#24a9c5] flex-shrink-0 mt-1" />
+                      <div>
+                        <p id="output-preference-label" className="font-semibold mb-2">Visualização do Resultado</p>
+                        <div role="radiogroup" aria-labelledby="output-preference-label" className="flex flex-wrap gap-2">
+                          <button role="radio" aria-checked={outputPreference === 'both'} onClick={() => setOutputPreference('both')} className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${outputPreference === 'both' ? 'bg-[#24a9c5] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'}`}>
+                            Ambos
+                          </button>
+                          <button role="radio" aria-checked={outputPreference === 'raw'} onClick={() => setOutputPreference('raw')} className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${outputPreference === 'raw' ? 'bg-[#24a9c5] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'}`}>
+                            Apenas Literal
+                          </button>
+                          <button role="radio" aria-checked={outputPreference === 'cleaned'} onClick={() => setOutputPreference('cleaned')} className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${outputPreference === 'cleaned' ? 'bg-[#24a9c5] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'}`}>
+                            Apenas Formatado
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      <strong>Nota:</strong> As estimativas são calculadas com base nas características técnicas do ficheiro. A precisão final depende da clareza do áudio, ruído de fundo e sotaques.
+                    </p>
+                  </div>
+              </div>
+            )}
+
+            {error && <div className="text-center text-red-800 bg-red-100 p-3 my-4 rounded-lg border border-red-200 dark:bg-red-900/50 dark:text-red-300 dark:border-red-800/50">{error}</div>}
+
+            {processStage !== 'idle' && (
+              <div className="mt-6">
+                {audioFile && (
+                  <div className="mb-6 text-center p-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+                      <p className="text-sm font-semibold text-gray-600 dark:text-gray-300">A processar o ficheiro:</p>
+                      {isProcessing ? (
+                          <div className="relative w-full flex overflow-x-hidden h-7 items-center">
+                              <div className="animate-marquee whitespace-nowrap flex items-center">
+                                  <p className="text-lg font-bold text-gray-800 dark:text-gray-200 px-4">
+                                      {audioFile.name}
+                                  </p>
+                              </div>
+                              <div className="absolute top-0 animate-marquee2 whitespace-nowrap flex items-center h-full">
+                                  <p className="text-lg font-bold text-gray-800 dark:text-gray-200 px-4">
+                                      {audioFile.name}
+                                  </p>
+                              </div>
+                          </div>
+                      ) : (
+                          <p className="text-lg font-bold text-gray-800 dark:text-gray-200 truncate px-4">
+                              {audioFile.name}
+                          </p>
+                      )}
+                      <div className="mt-2 flex flex-wrap justify-center items-center gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
+                          {estimatedTime && (
+                              <span className="flex items-center gap-1">
+                                  <ClockIcon className="w-4 h-4" />
+                                  <span>Tempo Est.: {estimatedTime}</span>
+                              </span>
+                          )}
+                          {precisionPotential !== null && (
+                              <span className="flex items-center gap-1">
+                                  <TargetIcon className="w-4 h-4" />
+                                  <span>Potencial: {precisionPotential}%</span>
+                              </span>
+                          )}
+                      </div>
+                  </div>
+                )}
+                <ProgressBar stage={processStage} />
+              </div>
+            )}
+          </div>
+          
+          {(rawTranscript || cleanedTranscript || isProcessing) && (
+              <div className={`mt-12 grid grid-cols-1 ${finalDisplayIsSingleColumn ? 'lg:grid-cols-1' : 'lg:grid-cols-2'} gap-8`}>
+                  {(isProcessing || (processStage === 'completed' && (outputPreference === 'raw' || outputPreference === 'both'))) && <TranscriptDisplay 
+                      title="Texto Literal"
+                      text={rawTranscript}
+                      isLoading={processStage === 'transcribing'}
+                      isComplete={processStage !== 'transcribing' && rawTranscript.length > 0}
+                      isExpanded={!isAccordionMode || expandedTranscript === 'raw'}
+                      isClickable={isAccordionMode}
+                      onToggle={() => handleToggleTranscript('raw')}
+                  />}
+                  {(isProcessing || (processStage === 'completed' && (outputPreference === 'cleaned' || outputPreference === 'both'))) && <TranscriptDisplay 
+                      title="Texto Formatado"
+                      text={cleanedTranscript}
+                      isLoading={processStage === 'cleaning'}
+                      isComplete={processStage === 'completed' && cleanedTranscript.length > 0}
+                      placeholder={processStage === 'cleaning' || processStage === 'completed' ? "A aguardar pela otimização..." : "O resultado aparecerá aqui."}
+                      renderAsHTML={true}
+                      isExpanded={!isAccordionMode || expandedTranscript === 'cleaned'}
+                      isClickable={isAccordionMode}
+                      onToggle={() => handleToggleTranscript('cleaned')}
+                  />}
+              </div>
           )}
-        </div>
-        
-        {(rawTranscript || cleanedTranscript || isProcessing) && (
-            <div className={`mt-12 grid grid-cols-1 ${finalDisplayIsSingleColumn ? 'lg:grid-cols-1' : 'lg:grid-cols-2'} gap-8`}>
-                {(isProcessing || (processStage === 'completed' && (outputPreference === 'raw' || outputPreference === 'both'))) && <TranscriptDisplay 
-                    title="Texto Literal"
-                    text={rawTranscript}
-                    isLoading={processStage === 'transcribing'}
-                    isComplete={processStage !== 'transcribing' && rawTranscript.length > 0}
-                    isExpanded={!isAccordionMode || expandedTranscript === 'raw'}
-                    isClickable={isAccordionMode}
-                    onToggle={() => handleToggleTranscript('raw')}
-                />}
-                {(isProcessing || (processStage === 'completed' && (outputPreference === 'cleaned' || outputPreference === 'both'))) && <TranscriptDisplay 
-                    title="Texto Formatado"
-                    text={cleanedTranscript}
-                    isLoading={processStage === 'cleaning'}
-                    isComplete={processStage === 'completed' && cleanedTranscript.length > 0}
-                    placeholder={processStage === 'cleaning' || processStage === 'completed' ? "A aguardar pela otimização..." : "O resultado aparecerá aqui."}
-                    renderAsHTML={true}
-                    isExpanded={!isAccordionMode || expandedTranscript === 'cleaned'}
-                    isClickable={isAccordionMode}
-                    onToggle={() => handleToggleTranscript('cleaned')}
-                />}
+        </main>
+        <footer className="text-center py-6 text-gray-500 dark:text-gray-400 text-sm select-none">
+          <p>
+            © {new Date().getFullYear()} Longani &middot; v0.5.0
+          </p>
+        </footer>
+        {showExitToast && (
+            <div
+              role="status"
+              aria-live="polite"
+              className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-800 px-4 py-2 rounded-full text-sm shadow-lg select-none z-[100] animate-fade-in-up"
+            >
+              Pressione novamente para sair
             </div>
         )}
-      </main>
-      <footer className="text-center py-6 text-gray-500 dark:text-gray-400 text-sm select-none">
-        <p>
-          © {new Date().getFullYear()} Longani &middot; v0.5.0
-        </p>
-      </footer>
-      {showExitToast && (
-          <div
-            role="status"
-            aria-live="polite"
-            className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-800 px-4 py-2 rounded-full text-sm shadow-lg select-none z-[100] animate-fade-in-up"
-          >
-            Pressione novamente para sair
-          </div>
-      )}
-      {isPWA && <ThemeSwitcher theme={theme} setTheme={setTheme} />}
-    </div>
+        {isPWA && <ThemeSwitcher theme={theme} setTheme={setTheme} />}
+      </div>
+    </>
   );
 };
 
