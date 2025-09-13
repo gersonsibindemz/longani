@@ -8,7 +8,7 @@ import { Loader } from './components/Loader';
 import { ArrowRightIcon, ReloadIcon, ClockIcon, TargetIcon, InfoIcon, HistoryIcon, ColumnsIcon } from './components/Icons';
 import { getAudioDuration, estimateProcessingTime, estimatePrecisionPotential, calculateDynamicPrecision, getFriendlyErrorMessage } from './utils/audioUtils';
 import { ThemeSwitcher } from './components/ThemeSwitcher';
-import { Analytics } from "@vercel/analytics/react"
+import { Analytics } from '@vercel/analytics/next';
 
 type ProcessStage = 'idle' | 'transcribing' | 'cleaning' | 'completed';
 export type Theme = 'system' | 'light' | 'dark';
