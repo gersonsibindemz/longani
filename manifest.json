@@ -1,7 +1,7 @@
 {
   "short_name": "Longani",
-  "name": "Longani - Transcrição de áudio.",
-  "description": "Aplicativo web inteligente que transcreve ficheiros de áudio e os refina em documento formwtado limpo e profissional.",
+  "name": "Longani - AI Audio Transcription",
+  "description": "An intelligent web application that transcribes audio files and refines them into clean, professionally formatted documents.",
   "icons": [
     {
       "src": "https://i.postimg.cc/d08LrDfC/Longani-Logo-PWA.png",
@@ -21,4 +21,3 @@
   "theme_color": "#24a9c5",
   "background_color": "#f3f4f6"
 }
- 
