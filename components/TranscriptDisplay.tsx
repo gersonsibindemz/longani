@@ -12,9 +12,10 @@ interface TranscriptDisplayProps {
   isExpanded: boolean;
   isClickable: boolean;
   onToggle: () => void;
+  audioUrl?: string | null;
 }
 
-export const TranscriptDisplay: React.FC<TranscriptDisplayProps> = ({ title, text, isLoading, isComplete, placeholder, renderAsHTML = false, isExpanded, isClickable, onToggle }) => {
+export const TranscriptDisplay: React.FC<TranscriptDisplayProps> = ({ title, text, isLoading, isComplete, placeholder, renderAsHTML = false, isExpanded, isClickable, onToggle, audioUrl }) => {
   const [copied, setCopied] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -101,6 +102,13 @@ export const TranscriptDisplay: React.FC<TranscriptDisplayProps> = ({ title, tex
         </div>
       </div>
       <div className={`transition-[max-height] duration-500 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[150vh]' : 'max-h-0'}`}>
+        {audioUrl && (
+          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+            <audio controls src={audioUrl} className="w-full h-10">
+              O seu navegador não suporta o elemento de áudio.
+            </audio>
+          </div>
+        )}
         <div className={`p-6 relative ${isExpanded ? 'min-h-[300px]' : ''}`}>
             {isLoading ? (
             <div className="absolute inset-0 flex items-center justify-center bg-white/30 dark:bg-gray-900/50 rounded-b-xl">
