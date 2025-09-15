@@ -8,7 +8,6 @@ import { Loader } from './components/Loader';
 import { ArrowRightIcon, ReloadIcon, ClockIcon, TargetIcon, InfoIcon, HistoryIcon, ColumnsIcon } from './components/Icons';
 import { getAudioDuration, estimateProcessingTime, estimatePrecisionPotential, calculateDynamicPrecision, getFriendlyErrorMessage } from './utils/audioUtils';
 import { ThemeSwitcher } from './components/ThemeSwitcher';
-import { Analytics } from '@vercel/analytics/next';
 
 type ProcessStage = 'idle' | 'transcribing' | 'cleaning' | 'completed';
 export type Theme = 'system' | 'light' | 'dark';
@@ -17,6 +16,7 @@ type OutputPreference = 'both' | 'raw' | 'cleaned';
 
 const App: React.FC = () => {
   const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [rawTranscript, setRawTranscript] = useState<string>('');
   const [cleanedTranscript, setCleanedTranscript] = useState<string>('');
   const [processStage, setProcessStage] = useState<ProcessStage>('idle');
@@ -33,8 +33,9 @@ const App: React.FC = () => {
   const [expandedTranscript, setExpandedTranscript] = useState<ExpandedTranscript>('none');
   const [fileSelectionSuccess, setFileSelectionSuccess] = useState(false);
   const [outputPreference, setOutputPreference] = useState<OutputPreference>('both');
+  const [isEffectivelyDark, setIsEffectivelyDark] = useState(false);
 
-  const MAX_FILE_SIZE_MB = 15;
+  const MAX_FILE_SIZE_MB = 25; // Increased file size limit
   const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
   // This useEffect runs once on mount to detect PWA, load theme, and handle initial loading animation.
@@ -76,6 +77,8 @@ const App: React.FC = () => {
       // Determine if dark mode should be active
       const isDark =
         theme === 'dark' || (theme === 'system' && mediaQuery.matches);
+      
+      setIsEffectivelyDark(isDark);
 
       if (isDark) {
         document.documentElement.classList.add('dark');
@@ -136,8 +139,22 @@ const App: React.FC = () => {
     }
   }, [isPWA]);
 
+  // Effect to clean up the audio object URL to prevent memory leaks.
+  useEffect(() => {
+    return () => {
+      if (audioUrl) {
+        URL.revokeObjectURL(audioUrl);
+      }
+    };
+  }, [audioUrl]);
+
+
   const handleReset = useCallback(() => {
+    if (audioUrl) {
+      URL.revokeObjectURL(audioUrl);
+    }
     setAudioFile(null);
+    setAudioUrl(null);
     setRawTranscript('');
     setCleanedTranscript('');
     setError(null);
@@ -149,7 +166,7 @@ const App: React.FC = () => {
     setExpandedTranscript('none');
     setFileSelectionSuccess(false);
     setOutputPreference('both');
-  }, []);
+  }, [audioUrl]);
 
   const handleFileChange = async (file: File | null) => {
     handleReset();
@@ -158,11 +175,13 @@ const App: React.FC = () => {
       if (file.size > MAX_FILE_SIZE_BYTES) {
         setError(`O ficheiro excede o limite de ${MAX_FILE_SIZE_MB} MB. Por favor, escolha um ficheiro mais pequeno.`);
         setAudioFile(null);
+        setAudioUrl(null);
         setFileInputKey(Date.now()); 
         return;
       }
       
       setAudioFile(file);
+      setAudioUrl(URL.createObjectURL(file));
       setFileSelectionSuccess(true);
 
       try {
@@ -208,6 +227,10 @@ const App: React.FC = () => {
       return;
     }
   
+    // Generate a unique ID for this transcription job for future tracking
+    const transcriptionId = `longani-job-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    console.log(`Starting processing for job ID: ${transcriptionId}`);
+
     setError(null);
     setRawTranscript('');
     setCleanedTranscript('');
@@ -262,9 +285,7 @@ const App: React.FC = () => {
       setProcessStage('completed');
   
     } catch (err) {
-      // Use the new centralized error handler to get a user-friendly message.
-      // The handler also logs the original error for easier debugging.
-      const friendlyMessage = getFriendlyErrorMessage(err);
+      const friendlyMessage = getFriendlyErrorMessage(err, transcriptionId);
       setError(friendlyMessage);
       setProcessStage('idle');
     }
@@ -318,7 +339,7 @@ const App: React.FC = () => {
                 <div className="w-full sm:w-auto">
                   <FileUpload key={fileInputKey} onFileChange={handleFileChange} disabled={isProcessing} fileSelected={fileSelectionSuccess} />
                   <p className="text-gray-500 dark:text-gray-400 text-xs mt-2 text-center sm:text-left">
-                    Ficheiros de áudio suportados (.mp3, .wav, .m4a, etc.) com um limite de 15MB.
+                    Ficheiros de áudio suportados (.mp3, .wav, .m4a, etc.) com um limite de {MAX_FILE_SIZE_MB}MB.
                   </p>
                 </div>
               )}
@@ -475,6 +496,7 @@ const App: React.FC = () => {
                       isExpanded={!isAccordionMode || expandedTranscript === 'raw'}
                       isClickable={isAccordionMode}
                       onToggle={() => handleToggleTranscript('raw')}
+                      audioUrl={processStage === 'completed' ? audioUrl : null}
                   />}
                   {(isProcessing || (processStage === 'completed' && (outputPreference === 'cleaned' || outputPreference === 'both'))) && <TranscriptDisplay 
                       title="Texto Formatado"
@@ -492,7 +514,7 @@ const App: React.FC = () => {
         </main>
         <footer className="text-center py-6 text-gray-500 dark:text-gray-400 text-sm select-none">
           <p>
-            © {new Date().getFullYear()} Longani &middot; v0.5.0
+            © {new Date().getFullYear()} Longani &middot; v0.9.0
           </p>
         </footer>
         {showExitToast && (
@@ -504,7 +526,7 @@ const App: React.FC = () => {
               Pressione novamente para sair
             </div>
         )}
-        {isPWA && <ThemeSwitcher theme={theme} setTheme={setTheme} />}
+        {isPWA && <ThemeSwitcher setTheme={setTheme} isEffectivelyDark={isEffectivelyDark} />}
       </div>
     </>
   );
