@@ -33,19 +33,20 @@ async function* generateStream(request: GenerateContentParameters): AsyncGenerat
 
 
 const transcribePrompt = `
-Your task is a literal audio transcription. Auto-detect the language (likely Mozambican Portuguese).
+As a state-of-the-art speech recognition model, your primary task is a literal audio transcription. Auto-detect the spoken language (likely Mozambican Portuguese).
 
-**Rules:**
-- Transcribe everything exactly as spoken: filler words ("uhm," "ah"), stutters, pauses, and mistakes.
-- Do not summarize, rephrase, or correct grammar.
-- Use punctuation (..., -) to reflect speech patterns.
-- Use short paragraphs for breaks in thought.
-- Mark unclear audio as [inaudible] and long pauses as [pause].
-- The output must be a raw, unfiltered transcript.
+**Core Rules:**
+- Transcribe every utterance exactly as spoken. This includes filler words ("uhm," "ah," "tipo"), stutters, repetitions, and grammatical mistakes.
+- Do not summarize, rephrase, correct grammar, or censor any content. Your output must be a pure, unfiltered representation of the audio.
+- Use punctuation like commas, periods, hyphens (-), and ellipses (...) to accurately reflect speech patterns, pauses, and hesitations.
+- Create short paragraphs for natural breaks in thought or when a different speaker might be talking (if discernible).
+- If a word or phrase is unclear or impossible to understand, mark it as [inaudible].
+- For significant pauses (longer than a few seconds), mark it as [pause].
+- The final output must be only the raw transcript text. Do not add any commentary or introductory phrases.
 `;
 
 const cleanPromptTemplate = (rawTranscript: string) => `
-You are an expert editor. Your task is to convert the raw transcript below into a well-structured, professional HTML document in Portuguese.
+You are an expert editor specializing in transforming raw, verbatim transcripts into professionally structured and readable documents. Your task is to convert the raw Portuguese transcript below into a clean, well-formatted HTML document.
 
 **Raw Transcript:**
 ---
@@ -53,11 +54,11 @@ ${rawTranscript}
 ---
 
 **Instructions:**
-1.  **Analyze and Structure:** Identify main topics and create a logical structure using HTML headings (\`<h2>\`, \`<h3>\`, \`<h4>\`). DO NOT use \`<h1>\`. Organize the content actively.
-2.  **Format Lists:** Use \`<ul>\` for bullet points and \`<ol>\` for numbered steps where appropriate.
-3.  **Refine Content:** Correct grammar and remove filler words ("uhm", "tipo"). Rewrite for clarity while strictly preserving the original meaning and speaker's voice. Use \`<p>\` tags for paragraphs.
-4.  **Add Emphasis:** Use \`<strong>\` for key terms and \`<em>\` for subtle emphasis.
-5.  **Output:** Provide ONLY the HTML body content. Do not include \`<html>\`, \`<body>\`, or markdown fences (\`\`\`html\`\`\`).
+1.  **Analyze and Structure:** Identify the main topics, arguments, and logical flow of the conversation. Create a clear structure using appropriate HTML headings (\`<h2>\`, \`<h3>\`, \`<h4>\`). DO NOT use \`<h1>\`. The structure should make the content easy to navigate and understand.
+2.  **Format Lists:** Where appropriate, format items into bulleted lists using \`<ul>\` or numbered lists using \`<ol>\`.
+3.  **Refine Content:** Meticulously correct grammar, spelling, and punctuation. Remove filler words (e.g., "uhm," "ah," "tipo"), false starts, and unnecessary repetitions. Rewrite sentences for better clarity and flow, but **you must strictly preserve the original meaning, intent, and voice of the speaker(s)**. Use standard paragraph tags (\`<p>\`).
+4.  **Add Emphasis:** Use \`<strong>\` tags to highlight key terms, conclusions, or important statements. Use \`<em>\` for more subtle emphasis where natural.
+5.  **Output Requirements:** Provide ONLY the HTML body content. Do not include \`<html>\`, \`<body>\`, or markdown fences like \`\`\`html\`\`\`. The output must be ready to be injected directly into a webpage.
 `;
 
 export function transcribeAudio(audioBase64: string, audioMimeType: string): AsyncGenerator<string> {
@@ -74,6 +75,7 @@ export function transcribeAudio(audioBase64: string, audioMimeType: string): Asy
         contents: [{ parts: [audioPart, { text: transcribePrompt }] }],
         config: {
             temperature: 0.1, // Lower temperature for more deterministic, literal transcription
+            thinkingConfig: { thinkingBudget: 0 } // Disable thinking for faster, direct transcription
         }
     };
     
