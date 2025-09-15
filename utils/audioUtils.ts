@@ -95,11 +95,13 @@ export const calculateDynamicPrecision = (
  * helping developers to identify issues while providing clear, actionable feedback to users.
  *
  * @param error The error object or string to be processed.
+ * @param transcriptionId An optional unique ID for the job to aid in debugging.
  * @returns A user-friendly error message string in Portuguese.
  */
-export const getFriendlyErrorMessage = (error: unknown): string => {
+export const getFriendlyErrorMessage = (error: unknown, transcriptionId?: string): string => {
+  const logPrefix = transcriptionId ? `[Error TID: ${transcriptionId}]` : '[Error]';
   // Log the original error for debugging.
-  console.error("An error was caught and processed for the user:", error);
+  console.error(`${logPrefix} An error was caught and processed for the user:`, error);
 
   // Default message for truly unknown errors.
   let friendlyMessage = 'Ocorreu um erro inesperado. Por favor, tente novamente ou contacte o suporte se o problema persistir.';
@@ -115,7 +117,7 @@ export const getFriendlyErrorMessage = (error: unknown): string => {
   if (technicalMessage.includes('API_KEY_INVALID') || technicalMessage.includes('API KEY')) {
     friendlyMessage = 'A chave de acesso ao serviço de IA é inválida ou está em falta. Por favor, contacte o suporte técnico para resolver este problema de configuração.';
     // Provide a more specific log for developers.
-    console.error("Developer Info: The Gemini API key is missing, invalid, or expired.");
+    console.error(`${logPrefix} Developer Info: The Gemini API key is missing, invalid, or expired.`);
   } else if (technicalMessage.includes('QUOTA')) {
     friendlyMessage = 'O limite diário de utilizações gratuitas foi atingido. Sendo uma aplicação gratuita, utilizamos um plano com uma quota diária partilhada por todos os utilizadores. O serviço será restaurado amanhã. Por favor, tente novamente mais tarde.';
   } else if (technicalMessage.includes('SAFETY')) {
@@ -139,7 +141,7 @@ export const getFriendlyErrorMessage = (error: unknown): string => {
   }
 
   // Log the final message that will be displayed to the user.
-  console.log(`[User-Facing Error]: ${friendlyMessage}`);
+  console.log(`${logPrefix} [User-Facing Error]: ${friendlyMessage}`);
   
   return friendlyMessage;
 };
