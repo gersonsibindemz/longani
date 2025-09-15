@@ -1,6 +1,6 @@
 // service-worker.js
 
-const CACHE_NAME = 'longani-cache-v2';
+const CACHE_NAME = 'longani-cache-v3'; // Updated cache name for version 0.9.0
 const urlsToCache = [
   '/',
   '/index.html',
