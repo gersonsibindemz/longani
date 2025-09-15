@@ -1,34 +1,23 @@
+
 import React from 'react';
-import { SunIcon, MoonIcon, SystemIcon } from './Icons';
+import { SunIcon, MoonIcon } from './Icons';
 import type { Theme } from '../App';
 
 interface ThemeSwitcherProps {
-  theme: Theme;
   setTheme: (theme: Theme) => void;
+  isEffectivelyDark: boolean;
 }
 
-const themeCycle: Theme[] = ['system', 'light', 'dark'];
-
-export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({ theme, setTheme }) => {
+export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({ setTheme, isEffectivelyDark }) => {
   const handleThemeChange = () => {
-    const currentIndex = themeCycle.indexOf(theme);
-    const nextIndex = (currentIndex + 1) % themeCycle.length;
-    setTheme(themeCycle[nextIndex]);
+    // This button will now only toggle between light and dark modes.
+    // It will override the 'system' preference if it was active.
+    setTheme(isEffectivelyDark ? 'light' : 'dark');
   };
   
-  const getThemeInfo = () => {
-    switch(theme) {
-      case 'light':
-        return { icon: <SunIcon className="w-5 h-5" />, label: 'Mudar para modo Escuro' };
-      case 'dark':
-        return { icon: <MoonIcon className="w-5 h-5" />, label: 'Mudar para modo Sistema' };
-      case 'system':
-      default:
-        return { icon: <SystemIcon className="w-5 h-5" />, label: 'Mudar para modo Claro' };
-    }
-  };
-
-  const { icon, label } = getThemeInfo();
+  const { icon, label } = isEffectivelyDark
+    ? { icon: <MoonIcon className="w-5 h-5" />, label: 'Mudar para modo Claro' }
+    : { icon: <SunIcon className="w-5 h-5" />, label: 'Mudar para modo Escuro' };
 
   return (
     <div className="fixed bottom-6 right-6 z-[99]">
