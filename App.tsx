@@ -29,7 +29,6 @@ const App: React.FC = () => {
   const [showExitToast, setShowExitToast] = useState(false);
   const [theme, setTheme] = useState<Theme>('system');
   const [isPWA, setIsPWA] = useState(false);
-  const [showVideoSplash, setShowVideoSplash] = useState(false);
   const [expandedTranscript, setExpandedTranscript] = useState<ExpandedTranscript>('none');
   const [fileSelectionSuccess, setFileSelectionSuccess] = useState(false);
   const [outputPreference, setOutputPreference] = useState<OutputPreference>('both');
@@ -43,12 +42,12 @@ const App: React.FC = () => {
     const pwaQuery = window.matchMedia('(display-mode: standalone)');
     if (pwaQuery.matches) {
       setIsPWA(true);
-      setShowVideoSplash(true); // Enable video splash for PWA
       const storedTheme = localStorage.getItem('theme') as Theme | null;
       if (storedTheme && ['light', 'dark', 'system'].includes(storedTheme)) {
         setTheme(storedTheme);
       }
-      // For PWA, app visibility is controlled by the video splash component.
+      // For PWA, show the app immediately without a video splash screen.
+      setIsAppVisible(true);
     } else {
       // For non-PWA, use image preloading.
       const img = new Image();
@@ -295,37 +294,12 @@ const App: React.FC = () => {
     setExpandedTranscript(current => (current === transcriptType ? 'none' : transcriptType));
   };
   
-  const handleVideoEnd = useCallback(() => {
-    setShowVideoSplash(false);
-    setIsAppVisible(true);
-  }, []);
-
   const isProcessing = processStage === 'transcribing' || processStage === 'cleaning';
   const isAccordionMode = processStage === 'completed';
   const finalDisplayIsSingleColumn = processStage === 'completed' && outputPreference !== 'both';
 
   return (
     <>
-      {showVideoSplash && (
-        <div 
-          role="dialog"
-          aria-modal="true"
-          aria-label="Loading animation"
-          className="fixed inset-0 z-[1000] flex items-center justify-center bg-gray-100 dark:bg-gray-900"
-          onClick={handleVideoEnd} // Allow skipping by clicking/tapping
-        >
-          <video
-            src="https://streamable.com/vh2wrj/download.mp4"
-            autoPlay
-            muted
-            playsInline
-            onEnded={handleVideoEnd}
-            onError={handleVideoEnd} // Fallback if video fails
-            className="w-auto h-auto max-w-[80vw] max-h-[80vh] outline-none"
-            aria-hidden="true"
-          />
-        </div>
-      )}
       <div className={`min-h-screen flex flex-col transition-opacity duration-500 ease-in-out ${isAppVisible ? 'opacity-100' : 'opacity-0'}`}>
         <Header />
         <main className="container mx-auto px-4 py-8 flex-grow">
